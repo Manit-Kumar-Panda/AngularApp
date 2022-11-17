@@ -1,4 +1,7 @@
-import { Component, ElementRef, EventEmitter, OnInit, Output, ViewChild } from '@angular/core';
+import { formatPercent } from '@angular/common';
+import { Component, ElementRef, EventEmitter, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { NgForm } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { Ingredient } from 'src/app/shared/ingredient.model';
 import { shoppingListService } from '../shopping-list.service';
 
@@ -7,26 +10,49 @@ import { shoppingListService } from '../shopping-list.service';
   templateUrl: './shopping-edit.component.html',
   styleUrls: ['./shopping-edit.component.css']
 })
-export class ShoppingEditComponent implements OnInit {
+export class ShoppingEditComponent implements OnInit, OnDestroy {
 
-  @ViewChild('nameInput', {static: false}) nameInput: ElementRef;
-  @ViewChild('amountInput' , {static: false}) amountInput: ElementRef;
   // @Output() ingreEmitter = new EventEmitter<Ingredient>();
-  constructor(private shoppingListService : shoppingListService) { }
+  constructor(private shoppingListService: shoppingListService) { }
+  subscription: Subscription;
+  editMode = false;
+  editedItemIndex: number;
+  editedItem: Ingredient;
+  @ViewChild("f") f: NgForm;
 
   ngOnInit(): void {
+    this.subscription = this.shoppingListService.startEditing.subscribe((index: number) => {
+      this.editMode = true;
+      this.editedItemIndex = index;
+      this.editedItem = this.shoppingListService.getIngredient(index);
+      this.f.setValue({
+        "name": this.editedItem.name,
+        "amount": this.editedItem.amount
+      });
+    });
   }
-  onAdd() {
-    this.shoppingListService.addIngToList([{ name: this.nameInput.nativeElement.value, amount: this.amountInput.nativeElement.value }]);
+
+  onSubmit(form: NgForm) {
+    if (this.editMode) {
+      this.shoppingListService.updateIngredient(this.editedItemIndex, new Ingredient(form.value.name, form.value.amount));
+    } else {
+      this.shoppingListService.addIngToList([{ name: form.value['name'], amount: form.value['amount'] }]);
+    }
+    this.editMode = false;
     // this.ingreEmitter.emit({name: this.nameInput.nativeElement.value, amount:this.amountInput.nativeElement.value})
   }
 
   onDelete() {
-    
+    this.shoppingListService.deleteIngredients(this.editedItemIndex);
+    this.onClear();
   }
 
   onClear() {
-    
+    this.f.reset();
+    this.editMode = false;
+  }
+  ngOnDestroy(): void {
+    this.subscription.unsubscribe();
   }
 
 }
