@@ -1,14 +1,14 @@
 import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { catchError, Observable, Subject, throwError, tap } from "rxjs";
+import { catchError, Observable, Subject, throwError, tap, BehaviorSubject } from "rxjs";
 import { User } from "./user.model";
 
 export interface responseData {
-    idToken: String,
-    email: String,
-    refreshToken: String,
-    expiresIn: String,
-    localId: String,
+    idToken: string,
+    email: string,
+    refreshToken: string,
+    expiresIn: string,
+    localId: string,
     registered?: Boolean
 }
 
@@ -16,11 +16,11 @@ export interface responseData {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
 
-    user = new Subject<User>();
-
+    user = new BehaviorSubject<User>(null); // user subject will be primary source of truth , anytime auth state changes this happen-> if not loggedIn will emit null else user obj
+    token: String = null;
     constructor(private http: HttpClient) { }
 
-    private handleAuth(email: String, userId: String, token: String, expiresIn: number) {
+    private handleAuth(email: string, userId: string, token: string, expiresIn: number) {
 
         const expirationDate = new Date(new Date().getTime() + +expiresIn * 1000);
         const user = new User(email, userId, token, expirationDate);
